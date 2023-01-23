@@ -175,7 +175,7 @@ function init()
 end
 
 function generate_melody(beats_per_chord,chord_structure,root_note,move_left,move_right,stay_scale)
-  dprint("generate_melody",beats_per_chord,chord_structure,root_note,move_left,move_right,stay_scale)
+  -- TODO: add optional seed to keep getting same structure
   local factor=1
 
   -- notes to play
