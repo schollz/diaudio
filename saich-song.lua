@@ -63,6 +63,7 @@ function init()
     table.insert(song_chord_quality,"major")
   end
 
+  params:add_number("random_seed","random seed",1,1000000,18)
   local params_menu={
     {id="chord",name="chord",min=1,max=7,exp=false,div=1,default=1,formatter=function(param) return song_chord_possibilities[param:get()] end},
     {id="root",name="root",min=1,max=120,exp=false,div=1,default=48,formatter=function(param) return musicutil.note_num_to_name(param:get(),true)end},
@@ -175,7 +176,7 @@ function init()
 end
 
 function generate_melody(beats_per_chord,chord_structure,root_note,move_left,move_right,stay_scale)
-  -- TODO: add optional seed to keep getting same structure
+  math.randomseed(params:get("random_seed"))
   local factor=1
 
   -- notes to play
@@ -243,6 +244,7 @@ function key(k,z)
   if k==2 and z==1 then
     select_param=util.wrap(select_param+1,1,2)
   elseif k==3 and z==1 then
+    params:set("random_seed",math.random(1,1000000))
   end
 end
 
@@ -261,6 +263,8 @@ function redraw()
     screen.level(select_chord==i and 15 or 5)
     screen.text_center(params:string("chord"..i))
   end
+  screen.move(58,5)
+  screen.text_right(params:get("random_seed"))
   for i,v in ipairs(select_possible) do
     screen.level(select_param==i and 15 or 5)
     screen.move(32,10+12*i)
