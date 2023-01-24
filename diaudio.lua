@@ -142,14 +142,16 @@ function init()
           -- introduce variation
           local song_melody_notes2=generate_melody(chord_beats,song_chords,song_root,movement_left,movement_right,stay_on_chord)
           math.randomseed(os.time())
+          -- TODO make interspersed optional
           for ii,vv in ipairs(song_melody_notes2) do
             if math.random()<0.1 then
               song_melody_notes[ii]=vv
             end
           end
           -- more space
+          -- TODO make spacing optional
           for ii,vv in ipairs(song_melody_notes) do
-            if math.random()<0.6 and ii>1 then
+            if math.random()<0.5 and ii>1 then
               song_melody_notes[ii]=song_melody_notes[ii-1]
             end
           end
@@ -233,9 +235,12 @@ function generate_melody(beats_per_chord,chord_structure,root_note,move_left,mov
       note_start=chord_notes[1]
     end
     for _,u in ipairs(chord_notes) do
-      notes_in_chord[u]=true
       for j=-5,5 do
-        notes_in_chord[u+(12*j)]=true
+        local vv=u+(12*j)
+        if notes_in_chord[vv]==nil then
+          notes_in_chord[vv]=0
+        end
+        notes_in_chord[vv]=notes_in_chord[vv]+1
       end
     end
   end
@@ -251,7 +256,8 @@ function generate_melody(beats_per_chord,chord_structure,root_note,move_left,mov
       local weights={}
       local scale_size=#notes_to_choose
       for notei,note in ipairs(notes_to_choose) do
-        weights[notei]=notes_in_chord[note]~=nil and scale_size or scale_size*(1-util.clamp(stay_scale[i],0,1))
+        -- TODO: make scaling by the chord note frequency optional
+        weights[notei]=notes_in_chord[note]~=nil and (scale_size+notes_in_chord[note]) or scale_size*(1-util.clamp(stay_scale[i],0,1))
         -- weights[i]=weights[i]+(scale_size-i)
       end
       local note_next=choose_with_weights(notes_to_choose,weights)
