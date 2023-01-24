@@ -2,6 +2,8 @@
 
 musicutil=require("musicutil")
 
+engine.name="PolyPerc"
+
 debug_mode=true
 function dprint(name,...)
   if debug_mode then
@@ -68,7 +70,7 @@ function init()
   params:add_taper("release","release",100,10000,1000)
   local params_menu={
     {id="chord",name="chord",min=1,max=7,exp=false,div=1,default=1,formatter=function(param) return song_chord_possibilities[param:get()] end},
-    {id="root",name="root",min=1,max=120,exp=false,div=1,default=72,formatter=function(param) return musicutil.note_num_to_name(param:get(),true)end},
+    {id="root",name="root",min=1,max=120,exp=false,div=1,default=48,formatter=function(param) return musicutil.note_num_to_name(param:get(),true)end},
     {id="chord_beats",name="chord beats",min=1,max=32,exp=false,div=1,default=8,formatter=function(param) return string.format("%d beats",math.floor(param:get())) end},
     {id="stay_on_chord",name="stay on chord",min=0,max=1,exp=false,div=0.01,default=0.95,formatter=function(param) return string.format("%d%%",math.floor(param:get()*100)) end},
     {id="movement_left",name="movement left",min=0,max=12,exp=false,div=1,default=6,formatter=function(param) return string.format("<- %d",math.floor(param:get())) end},
@@ -86,18 +88,18 @@ function init()
       if pram.id=="chord" then
         params:set_action(pram.id..i,function(x)
           local v=params:string("chord"..i)
-          song_chord_notes[i]=musicutil.generate_chord_roman(song_root,1,v)
+          song_chord_notes[i]=musicutil.generate_chord_roman(params:get("root1"),1,v)
           song_chord_quality[i]=string.lower(v)==v and "minor" or "major"
         end)
       end
     end
   end
   -- default chords
-  for i,v in ipairs({1,6,4,3}) do
+  for i,v in ipairs({1,6,5,3}) do
     params:set("chord"..i,v)
-    params:set("stay_on_chord"..i,math.random(90,100)/100)
-    params:set("movement_left"..i,math.random(2,6))
-    params:set("movement_right"..i,math.random(2,6))
+    params:set("stay_on_chord"..i,math.random(90,97)/100)
+    params:set("movement_left"..i,math.random(4,6))
+    params:set("movement_right"..i,math.random(4,7))
   end
   local set_crow=function()
         crow.output[4].action = string.format("adsr(%2.3f,0.1,0.5,%2.3f)",params:get("attack")/1000,params:get("release")/1000)
@@ -108,6 +110,7 @@ set_crow()
   params:set_action("release",function(x)
 	  set_crow()
   end)
+  params:bang()
 
 
   local song_melody_notes={}
@@ -116,8 +119,10 @@ set_crow()
   local beat_melody=0
   local beat_last_note=0
   clock.run(function()
+    clock.sleep(1)
     while true do
-      clock.sync(1/2)
+      clock.sync(1)
+      
       -- iterate chord
       beat_chord=beat_chord%params:get("chord_beats"..beat_chord_index)+1
       if beat_chord==1 then
@@ -149,8 +154,14 @@ set_crow()
         end
         dprint("melody",string.format("next chord: %s",song_chord_possibilities[params:get("chord"..beat_chord_index)]))
         -- new chord
+        for i=1,3 do 
+          engine.amp(0.3)
+          engine.release(clock.get_beat_sec()*params:get("chord_beats"..beat_chord_index))
+          engine.hz(musicutil.note_num_to_freq(song_chord_notes[beat_chord_index][i]))
+        end
         crow.output[1].volts=(song_chord_notes[beat_chord_index][1]-24)/12
-        crow.output[2].volts=song_chord_quality[beat_chord_index]=="major" and 10 or 0 -- TODO check if this is accurate
+        crow.output[2].volts=(song_chord_notes[beat_chord_index][2]-24)/12
+        crow.output[3].volts=(song_chord_notes[beat_chord_index][3]-24)/12
       end
       marquee_chord:push(params:string("chord"..beat_chord_index))
 
@@ -160,18 +171,17 @@ set_crow()
         beat_melody=beat_melody%#song_melody_notes+1
         local next_note=song_melody_notes[beat_melody]
         if beat_last_note~=next_note then
-          crow.output[3].volts=(next_note-24)/12
-          crow.output[4](true)
+          engine.amp(math.random(3,15)/10)
+          engine.release(math.random(10,20)/10)
+          engine.hz(musicutil.note_num_to_freq(next_note+12))
+          crow.output[4].volts=(next_note-24)/12
           dprint("melody",string.format("next note: %d",next_note))
           note_next_name=musicutil.note_num_to_name(next_note,true)
-	else
-	  crow.output[3](false)
         end
         beat_last_note=next_note
       end
       marquee_note:push(note_next_name)
       dprint("clock_run",string.format("chord beat %d, melody beat %d",beat_chord,beat_melody))
-
     end
   end)
 
