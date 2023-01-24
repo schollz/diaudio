@@ -66,7 +66,7 @@ function init()
   params:add_number("random_seed","random seed",1,1000000,18)
   local params_menu={
     {id="chord",name="chord",min=1,max=7,exp=false,div=1,default=1,formatter=function(param) return song_chord_possibilities[param:get()] end},
-    {id="root",name="root",min=1,max=120,exp=false,div=1,default=48,formatter=function(param) return musicutil.note_num_to_name(param:get(),true)end},
+    {id="root",name="root",min=1,max=120,exp=false,div=1,default=72,formatter=function(param) return musicutil.note_num_to_name(param:get(),true)end},
     {id="chord_beats",name="chord beats",min=1,max=32,exp=false,div=1,default=8,formatter=function(param) return string.format("%d beats",math.floor(param:get())) end},
     {id="stay_on_chord",name="stay on chord",min=0,max=1,exp=false,div=0.01,default=0.95,formatter=function(param) return string.format("%d%%",math.floor(param:get()*100)) end},
     {id="movement_left",name="movement left",min=0,max=12,exp=false,div=1,default=6,formatter=function(param) return string.format("<- %d",math.floor(param:get())) end},
@@ -94,8 +94,8 @@ function init()
   for i,v in ipairs({1,6,4,3}) do
     params:set("chord"..i,v)
     params:set("stay_on_chord"..i,math.random(90,100)/100)
-    params:set("movement_left"..i,math.random(1,9))
-    params:set("movement_right"..i,math.random(1,9))
+    params:set("movement_left"..i,math.random(2,6))
+    params:set("movement_right"..i,math.random(2,6))
   end
 
 
