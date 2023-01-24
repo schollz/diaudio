@@ -12,7 +12,7 @@ function dprint(name,...)
 end
 
 local song_chord_possibilities={"I","ii","iii","IV","V","vi","vii"}
-local total_chords=8
+local total_chords=4
 local song_chord_notes={}
 local song_chord_quality={}
 
@@ -93,21 +93,12 @@ function init()
     end
   end
   -- default chords
-  for i,v in ipairs({1,6,5,3,1,6,5,4}) do
+  for i,v in ipairs({1,6,5,3}) do
     params:set("chord"..i,v)
     params:set("stay_on_chord"..i,math.random(90,97)/100)
     params:set("movement_left"..i,math.random(4,6))
     params:set("movement_right"..i,math.random(4,7))
   end
-  local set_crow=function()
-    crow.output[4].action=string.format("adsr(%2.3f,0.1,0.5,%2.3f)",params:get("attack")/1000,params:get("release")/1000)
-  end
-  params:set_action("attack",function(x)
-    set_crow()
-  end)
-  params:set_action("release",function(x)
-    set_crow()
-  end)
   params:bang()
 
   local song_melody_notes={}
@@ -173,7 +164,7 @@ function init()
         if beat_last_note~=next_note then
           engine.amp(math.random(3,15)/10)
           engine.release(math.random(10,20)/10)
-          engine.hz(musicutil.note_num_to_freq(next_note+12))
+          engine.hz(musicutil.note_num_to_freq(next_note+24))
           crow.output[4].volts=(next_note-24)/12
           dprint("melody",string.format("next note: %d",next_note))
           note_next_name=musicutil.note_num_to_name(next_note,true)
