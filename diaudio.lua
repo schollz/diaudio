@@ -3,6 +3,9 @@
 musicutil=require("musicutil")
 
 engine.name="PolyPerc"
+-- mxsamples=include("mx.samples/lib/mx.samples")
+-- engine.name="MxSamples"
+-- skeys=mxsamples:new()
 
 debug_mode=true
 function dprint(name,...)
@@ -53,7 +56,7 @@ end
 
 local marquee_chord=History.new(10)
 local marquee_note=History.new(10)
-
+local last_notes={}
 function init()
   print("saich song")
 
@@ -134,10 +137,23 @@ function init()
             table.insert(stay_on_chord,params:get("stay_on_chord"..i))
             table.insert(chord_beats,params:get("chord_beats"..i))
           end
-          math.randomseed(os.time())
-          params:set("random_seed",math.random(1,1000000))
 
-          song_melody_notes=generate_melody(chord_beats,song_chords,song_root,movement_left,movement_right,stay_on_chord)
+          song_melody_notes=generate_melody(chord_beats,song_chords,song_root+12,movement_left,movement_right,stay_on_chord,params:get("random_seed"))
+          -- introduce variation
+          local song_melody_notes2=generate_melody(chord_beats,song_chords,song_root,movement_left,movement_right,stay_on_chord)
+          math.randomseed(os.time())
+          for ii,vv in ipairs(song_melody_notes2) do
+            if math.random()<0.1 then
+              song_melody_notes[ii]=vv
+            end
+          end
+          -- more space
+          for ii,vv in ipairs(song_melody_notes) do
+            if math.random()<0.6 and ii>1 then
+              song_melody_notes[ii]=song_melody_notes[ii-1]
+            end
+          end
+
           -- print("new melody:")
           -- for i,v in ipairs(song_melody_notes) do
           --   print(i,musicutil.note_num_to_name(v),true)
@@ -146,6 +162,11 @@ function init()
         dprint("melody",string.format("next chord: %s",song_chord_possibilities[params:get("chord"..beat_chord_index)]))
         -- new chord
         for i=1,3 do
+          -- if last_notes[i]~=nil then
+          --   skeys:off({name="steinway model b",midi=last_notes[i]})
+          -- end
+          -- last_notes[i]=song_chord_notes[beat_chord_index][i]
+          -- skeys:on({name="steinway model b",midi=last_notes[i],velocity=math.random(40,80),amp=0.8,release=2})
           engine.amp(0.3)
           engine.release(clock.get_beat_sec()*params:get("chord_beats"..beat_chord_index))
           engine.hz(musicutil.note_num_to_freq(song_chord_notes[beat_chord_index][i]))
@@ -162,9 +183,15 @@ function init()
         beat_melody=beat_melody%#song_melody_notes+1
         local next_note=song_melody_notes[beat_melody]
         if beat_last_note~=next_note then
+          -- if last_notes[4]~=nil then
+          --   skeys:off({name="steinway model b",midi=last_notes[4]})
+          -- end
+          -- last_notes[4]=next_note
+          -- skeys:on({name="steinway model b",midi=last_notes[4],velocity=math.random(60,80)})
+
           engine.amp(math.random(3,15)/10)
           engine.release(math.random(10,20)/10)
-          engine.hz(musicutil.note_num_to_freq(next_note+24))
+          engine.hz(musicutil.note_num_to_freq(next_note))
           crow.output[4].volts=(next_note-24)/12
           dprint("melody",string.format("next note: %d",next_note))
           note_next_name=musicutil.note_num_to_name(next_note,true)
@@ -184,8 +211,12 @@ function init()
   end)
 end
 
-function generate_melody(beats_per_chord,chord_structure,root_note,move_left,move_right,stay_scale)
-  math.randomseed(params:get("random_seed"))
+function generate_melody(beats_per_chord,chord_structure,root_note,move_left,move_right,stay_scale,seed)
+  if seed==nil then
+    math.randomseed(os.time())
+    seed=math.random(1,1000000)
+  end
+  math.randomseed(seed)
   local factor=1
 
   -- notes to play
@@ -195,18 +226,20 @@ function generate_melody(beats_per_chord,chord_structure,root_note,move_left,mov
   local chords={}
   local scale=musicutil.generate_scale(12,1,8)
   local note_start=0
+  local notes_in_chord={}
   for i,v in ipairs(chord_structure) do
     local chord_notes=musicutil.generate_chord_roman(root_note,1,v)
     if i==1 then
       note_start=chord_notes[1]
     end
-    local notes_in_chord={}
     for _,u in ipairs(chord_notes) do
       notes_in_chord[u]=true
       for j=-5,5 do
         notes_in_chord[u+(12*j)]=true
       end
     end
+  end
+  for i,v in ipairs(chord_structure) do
     for jj=1,beats_per_chord[i] do
       -- find note_start in scale
       local notes_to_choose={}
@@ -253,6 +286,7 @@ function key(k,z)
   if k==2 and z==1 then
     select_param=util.wrap(select_param+1,1,2)
   elseif k==3 and z==1 then
+    math.randomseed(os.time())
     params:set("random_seed",math.random(1,1000000))
   end
 end
