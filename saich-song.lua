@@ -12,15 +12,13 @@ function dprint(name,...)
 end
 
 local song_chord_possibilities={"I","ii","iii","IV","V","vi","vii"}
-local total_chords=4
+local total_chords=8
 local song_chord_notes={}
 local song_chord_quality={}
 
 local select_param=1
 local select_possible={{"chord_beats","stay_on_chord"},{"movement_left","movement_right"}}
 local select_chord=1
-
-
 
 History={}
 
@@ -95,23 +93,22 @@ function init()
     end
   end
   -- default chords
-  for i,v in ipairs({1,6,5,3}) do
+  for i,v in ipairs({1,6,5,3,1,6,5,4}) do
     params:set("chord"..i,v)
     params:set("stay_on_chord"..i,math.random(90,97)/100)
     params:set("movement_left"..i,math.random(4,6))
     params:set("movement_right"..i,math.random(4,7))
   end
   local set_crow=function()
-        crow.output[4].action = string.format("adsr(%2.3f,0.1,0.5,%2.3f)",params:get("attack")/1000,params:get("release")/1000)
+    crow.output[4].action=string.format("adsr(%2.3f,0.1,0.5,%2.3f)",params:get("attack")/1000,params:get("release")/1000)
   end
   params:set_action("attack",function(x)
-set_crow()
+    set_crow()
   end)
   params:set_action("release",function(x)
-	  set_crow()
+    set_crow()
   end)
   params:bang()
-
 
   local song_melody_notes={}
   local beat_chord=params:get("chord_beats"..total_chords)
@@ -122,7 +119,7 @@ set_crow()
     clock.sleep(1)
     while true do
       clock.sync(1)
-      
+
       -- iterate chord
       beat_chord=beat_chord%params:get("chord_beats"..beat_chord_index)+1
       if beat_chord==1 then
@@ -146,6 +143,9 @@ set_crow()
             table.insert(stay_on_chord,params:get("stay_on_chord"..i))
             table.insert(chord_beats,params:get("chord_beats"..i))
           end
+          math.randomseed(os.time())
+          params:set("random_seed",math.random(1,1000000))
+
           song_melody_notes=generate_melody(chord_beats,song_chords,song_root,movement_left,movement_right,stay_on_chord)
           -- print("new melody:")
           -- for i,v in ipairs(song_melody_notes) do
@@ -154,7 +154,7 @@ set_crow()
         end
         dprint("melody",string.format("next chord: %s",song_chord_possibilities[params:get("chord"..beat_chord_index)]))
         -- new chord
-        for i=1,3 do 
+        for i=1,3 do
           engine.amp(0.3)
           engine.release(clock.get_beat_sec()*params:get("chord_beats"..beat_chord_index))
           engine.hz(musicutil.note_num_to_freq(song_chord_notes[beat_chord_index][i]))
