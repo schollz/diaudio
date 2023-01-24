@@ -263,7 +263,8 @@ function redraw()
     screen.level(select_chord==i and 15 or 5)
     screen.text_center(params:string("chord"..i))
   end
-  screen.move(58,5)
+  screen.level(5)
+  screen.move(120,5)
   screen.text_right(params:get("random_seed"))
   for i,v in ipairs(select_possible) do
     screen.level(select_param==i and 15 or 5)
@@ -272,6 +273,7 @@ function redraw()
     screen.move(96,10+12*i)
     screen.text_center(string.format("%s",params:string(v[2]..select_chord)))
   end
+  screen.level(5)
   for i,v in marquee_chord:iterator() do
     screen.move(128-i*12,50)
     screen.text(v)
