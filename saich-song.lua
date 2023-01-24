@@ -64,6 +64,8 @@ function init()
   end
 
   params:add_number("random_seed","random seed",1,1000000,18)
+  params:add_taper("attack","attack",10,10000,100)
+  params:add_taper("release","release",100,10000,1000)
   local params_menu={
     {id="chord",name="chord",min=1,max=7,exp=false,div=1,default=1,formatter=function(param) return song_chord_possibilities[param:get()] end},
     {id="root",name="root",min=1,max=120,exp=false,div=1,default=72,formatter=function(param) return musicutil.note_num_to_name(param:get(),true)end},
@@ -97,6 +99,15 @@ function init()
     params:set("movement_left"..i,math.random(2,6))
     params:set("movement_right"..i,math.random(2,6))
   end
+  local set_crow=function()
+        crow.output[4].action = string.format("adsr(%2.3f,0.1,0.5,%2.3f)",params:get("attack")/1000,params:get("release")/1000)
+  end
+  params:set_action("attack",function(x)
+set_crow()
+  end)
+  params:set_action("release",function(x)
+	  set_crow()
+  end)
 
 
   local song_melody_notes={}
@@ -138,14 +149,8 @@ function init()
         end
         dprint("melody",string.format("next chord: %s",song_chord_possibilities[params:get("chord"..beat_chord_index)]))
         -- new chord
-        -- crow.output[1].volts=(song_chord_notes[beat_chord_index][1]-24)/12
-        -- crow.output[2].volts=song_chord_quality[beat_chord_index]=="major" and 10 or 0 -- TODO check if this is accurate
-        -- new chord envelope
-        local attack=clock.get_beat_sec()
-        local decay=clock.get_beat_sec()
-        local hold_time=(params:get("chord_beats"..beat_chord_index)*0.5)*clock.get_beat_sec()
-        -- crow.output[3].action = string.format("{ to(0,0), to(10,%2.3f), to(7,%2.3f), to(0,%2.3f) }",attack,hold_time,decay)
-        -- crow.output[3]()
+        crow.output[1].volts=(song_chord_notes[beat_chord_index][1]-24)/12
+        crow.output[2].volts=song_chord_quality[beat_chord_index]=="major" and 10 or 0 -- TODO check if this is accurate
       end
       marquee_chord:push(params:string("chord"..beat_chord_index))
 
@@ -155,9 +160,12 @@ function init()
         beat_melody=beat_melody%#song_melody_notes+1
         local next_note=song_melody_notes[beat_melody]
         if beat_last_note~=next_note then
-          -- crow.output[4].volts=(next_note-24)/12
+          crow.output[3].volts=(next_note-24)/12
+          crow.output[4](true)
           dprint("melody",string.format("next note: %d",next_note))
           note_next_name=musicutil.note_num_to_name(next_note,true)
+	else
+	  crow.output[3](false)
         end
         beat_last_note=next_note
       end
