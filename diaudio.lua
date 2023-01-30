@@ -22,6 +22,7 @@ local song_chord_quality={}
 local select_param=1
 local select_possible={{"chord_beats","stay_on_chord"},{"movement_left","movement_right"}}
 local select_chord=1
+local start_time=os.time()
 
 History={}
 
@@ -58,7 +59,8 @@ local marquee_chord=History.new(10)
 local marquee_note=History.new(10)
 local last_notes={}
 function init()
-  print("saich song")
+  print("diaudio song")
+  engine.cutoff(1800); engine.pw(0.5); engine.gain(0.6)
 
   -- initialize arrays
   for i=1,total_chords do
@@ -96,7 +98,7 @@ function init()
     end
   end
   -- default chords
-  for i,v in ipairs({1,6,5,3}) do
+  for i,v in ipairs({6,4,3,5}) do
     params:set("chord"..i,v)
     params:set("stay_on_chord"..i,math.random(90,97)/100)
     params:set("movement_left"..i,math.random(4,6))
@@ -112,7 +114,7 @@ function init()
   clock.run(function()
     clock.sleep(1)
     while true do
-      clock.sync(1)
+      clock.sync(1/4)
 
       -- iterate chord
       beat_chord=beat_chord%params:get("chord_beats"..beat_chord_index)+1
@@ -138,10 +140,10 @@ function init()
             table.insert(chord_beats,params:get("chord_beats"..i))
           end
 
-          song_melody_notes=generate_melody(chord_beats,song_chords,song_root+12,movement_left,movement_right,stay_on_chord,params:get("random_seed"))
+          song_melody_notes=generate_melody(chord_beats,song_chords,song_root+12,movement_left,movement_right,stay_on_chord,start_time)
           -- introduce variation
-          local song_melody_notes2=generate_melody(chord_beats,song_chords,song_root,movement_left,movement_right,stay_on_chord)
-          math.randomseed(os.time())
+          local song_melody_notes2=generate_melody(chord_beats,song_chords,song_root,movement_left,movement_right,stay_on_chord,params:get("random_seed"))
+          -- math.randomseed(os.time())
           -- TODO make interspersed optional
           for ii,vv in ipairs(song_melody_notes2) do
             if math.random()<0.1 then
@@ -151,7 +153,7 @@ function init()
           -- more space
           -- TODO make spacing optional
           for ii,vv in ipairs(song_melody_notes) do
-            if math.random()<0.5 and ii>1 then
+            if math.random()<0.6 and ii>1 then
               song_melody_notes[ii]=song_melody_notes[ii-1]
             end
           end
@@ -169,9 +171,15 @@ function init()
           -- end
           -- last_notes[i]=song_chord_notes[beat_chord_index][i]
           -- skeys:on({name="steinway model b",midi=last_notes[i],velocity=math.random(40,80),amp=0.8,release=2})
-          engine.amp(0.3)
           engine.release(clock.get_beat_sec()*params:get("chord_beats"..beat_chord_index))
-          engine.hz(musicutil.note_num_to_freq(song_chord_notes[beat_chord_index][i]))
+          local f=musicutil.note_num_to_freq(song_chord_notes[beat_chord_index][i])
+          if f>100 then 
+            f=f/2
+          end
+          engine.release(2)
+          engine.amp(1)
+          engine.hz(f)
+          break
         end
         crow.output[1].volts=(song_chord_notes[beat_chord_index][1]-24)/12
         crow.output[2].volts=(song_chord_notes[beat_chord_index][2]-24)/12
@@ -191,9 +199,16 @@ function init()
           -- last_notes[4]=next_note
           -- skeys:on({name="steinway model b",midi=last_notes[4],velocity=math.random(60,80)})
 
-          engine.amp(math.random(3,15)/10)
-          engine.release(math.random(10,20)/10)
-          engine.hz(musicutil.note_num_to_freq(next_note))
+          -- engine.amp(math.random(3,15)/10)
+          engine.release(math.random(10,20)/10*2)
+          local f =musicutil.note_num_to_freq(next_note)
+          if f<100 then 
+            f=f*2
+          end
+          if f>500 then 
+            f=f/2
+          end
+          engine.hz(f)
           crow.output[4].volts=(next_note-24)/12
           dprint("melody",string.format("next note: %d",next_note))
           note_next_name=musicutil.note_num_to_name(next_note,true)
